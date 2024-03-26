@@ -1,3 +1,10 @@
+/*
+ * /filename:   assignment4
+ * /Author:     Martin Rizada 
+ * /brief:      Memory Match Game
+ * /Date:       March 26, 2024
+ */  
+
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 
