@@ -1,13 +1,17 @@
+/*  filename    gameScreen.js
+ *  Author      Martin Rizada
+ *  brief       screen where all the logic happened: matching card, playing sounds, haptic feedback and choosing images.
+ */
 import React, { useState, useEffect } from 'react';
-import { Alert, Button, Image, View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, Dimensions, Pressable} from 'react-native';
+import { Alert,Image, View, Text, Modal, TextInput, TouchableOpacity, StyleSheet, Dimensions, Pressable} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import FlipCard from 'react-native-flip-card';
 import * as SQLite from 'expo-sqlite';
 import * as Haptics from 'expo-haptics';
+import { Audio } from 'expo-av';
 
-
-const db = SQLite.openDatabase('game.db');
-
+// database
+const db = SQLite.openDatabase('scores.db');
 // Set up the table
 db.transaction(tx => {
     tx.executeSql(
@@ -18,6 +22,14 @@ const numColumns = 3;
 const cardMargin = 10;
 const windowWidth = Dimensions.get('window').width;
 const cardSize = (windowWidth / numColumns) - (cardMargin * 2);
+
+
+//Preload the sounds
+const soundMap = {
+    match: require('../assets/sfx/match.mp3'),
+    mismatch: require('../assets/sfx/mismatch.mp3'),
+    victory: require('../assets/sfx/win.mp3'),
+};
 
 // Shuffle the cards for a new game
 function shuffleCards(cards) {
@@ -53,7 +65,29 @@ const GameScreen = ({route}) => {
     const [numColumns, setNumColumns] = useState(3);
     const [cardWidth, setCardWidth] = useState((windowWidth / 3) - (cardMargin * 2));
 
+    async function playSound(soundName) {
+        try {
+            const soundObject = new Audio.Sound();
+            await soundObject.loadAsync(soundMap[soundName]);
+            await soundObject.playAsync();
 
+            // Setting the audio mode to play even when the app is in silent mode
+            await Audio.setAudioModeAsync({
+                playsInSilentModeIOS: true,
+            });
+
+            // Unload the sound from memory after it's finished playing
+            soundObject.setOnPlaybackStatusUpdate(async (status) => {
+                if (status.didJustFinish) {
+                    await soundObject.unloadAsync();
+                }
+            });
+        } catch (error) {
+            console.error('Error in playSound function:', error);
+        }
+    }
+
+    // defining the columns for each difficulties which I cannot make work :(
     const initializeGame = (difficultyLevel) => {
         let numPairs;
         let columns;
@@ -134,9 +168,9 @@ const GameScreen = ({route}) => {
         })));
         setFirstCard(null);
         setBoardLocked(false);
-        setScore(0); // Assuming you have a score state
-        setTimeLeft(60); // Reset the timer
-        startTimer(); // Start the new game timer
+        setScore(0);
+        setTimeLeft(60); 
+        startTimer(); 
     };
 
 
@@ -159,11 +193,10 @@ const GameScreen = ({route}) => {
                 resetGame();
             }
         );
-        setShowScoreModal(false); // Hide the score modal
-        setUserInitials(''); // Clear the user initials
+        setShowScoreModal(false); 
+        setUserInitials('');
     };
 
-    // Update onSubmitInitials function
     const onSubmitInitials = () => {
         if (userInitials.trim().length > 0) {
             saveUserScore(userInitials);
@@ -179,8 +212,6 @@ const GameScreen = ({route}) => {
         resetGame(); // Reset the game if the user cancels
     };
 
-
-    // Call this function when you want to start a new game, such as in a 'New Game' button onPress
 
 
     useEffect(() => {
@@ -241,7 +272,7 @@ const GameScreen = ({route}) => {
 
             setCards(updatedCards);
         } else {
-            // The alert should be here, outside of the condition where we assign the image.
+           
             console.log('No available card pairs. Showing alert.'); // This should appear in the console if no pairs are available.
             Alert.alert("All card pairs have images", "Every card pair already has an image assigned to it.");
         }
@@ -249,7 +280,7 @@ const GameScreen = ({route}) => {
 
 
 
-
+    // function if the user start clicking the card that includes haptics, scores and timer
     const onCardPress = (selectedCard) => {
         if (boardLocked || selectedCard.isFlipped) {
             return; // Prevent any action if the board is locked or the card is already flipped
@@ -270,7 +301,7 @@ const GameScreen = ({route}) => {
             setFirstCard(selectedCard);
         } else {
             if (selectedCard.content === firstCard.content && selectedCard.id !== firstCard.id) {
-                // Cards match, increase score
+                // Cards match: increase score, send a haptic feedback
                 const updatedCards = newCards.map(card =>
                     card.content === selectedCard.content ? { ...card, isMatched: true } : card
                 );
@@ -278,25 +309,26 @@ const GameScreen = ({route}) => {
                 setScore(prevScore => prevScore + 10);
                 setCards(updatedCards);
                 setFirstCard(null);
-                Haptics.notificationAsync(
-                    Haptics.NotificationFeedbackType.Success
-                )
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
+                playSound('match');
                 // Check if all cards are matched
                 if (updatedCards.every(card => card.isMatched)) {
+                    playSound('victory');
                     handleGameEnd(); // End the game if all cards are matched
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)
+                   
                 }
             } else {
                 // Cards don't match, decrease score
+                playSound('mismatch');
                 setScore(prevScore => prevScore - 2);
                 setBoardLocked(true);
                 setTimeout(() => {
                     const revertedCards = newCards.map(card =>
                         !card.isMatched ? { ...card, isFlipped: false } : card
                     );
-                    Haptics.notificationAsync(
-                        Haptics.NotificationFeedbackType.Error
-                    )
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)
+                   
                     setCards(revertedCards);
                     setBoardLocked(false);
                     setFirstCard(null);
@@ -377,24 +409,21 @@ const GameScreen = ({route}) => {
                 onRequestClose={() => setShowScoreModal(false)}>
                 <View style={styles.centeredView}>
                     <View style={styles.modalView}>
+                        <Text style={styles.modalTitle}>Enter Your Initials:</Text>
                         <TextInput
                             style={styles.modalText}
-                            placeholder="Enter your initials"
                             onChangeText={(text) => setUserInitials(text)}
                             defaultValue={userInitials}
                         />
-                        <Button
-                            title="Save Score"
-                            onPress={onSubmitInitials}
-                        />
-                        <Button
-                            title="Cancel"
-                            color="#FF6347"
-                            onPress={() => {
-                                setShowScoreModal(!showScoreModal);
+                        <Pressable style={styles.button} onPress={onSubmitInitials}>
+                            <Text style={styles.buttonText}>Save Score</Text>
+                        </Pressable>
+                        <Pressable style={styles.cancelButton} onPress={() => { setShowScoreModal(!showScoreModal);
                                 resetGame(); // Reset the game if user cancels
-                            }}
-                        />
+                           }}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </Pressable>
                     </View>
                 </View>
             </Modal>
@@ -470,9 +499,9 @@ const styles = StyleSheet.create({
     },
     modalView: {
         width: '50%',
-        height: '20%',
+        height: '30%',
         margin: 20,
-        backgroundColor: '#lightgray',
+        backgroundColor: 'lightgray',
         borderRadius: 20,
         padding: 35,
         alignItems: 'center',
@@ -486,13 +515,62 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     modalText: {
-        marginBottom: 15,
+        height: 40,
+        width: '80%',
+        borderColor: 'gray',
+        borderWidth: 1,
+        padding: 10,
+        marginBottom: 20,
         textAlign: 'center',
+        fontSize: 18,
+        borderRadius: 5,
     },
     imageText: {
         marginTop: 10,
         color: 'white',
         fontSize: 18,
+        textAlign: 'center',
+    },
+    modalTitle: {
+        marginBottom: 15,
+        textAlign: 'center',
+        fontSize: 24,
+        fontWeight: 'bold',
+    },
+    button: {
+        backgroundColor: 'lightgray',
+        borderRadius: 5,
+        paddingVertical: 5,
+        paddingHorizontal: 5,
+        minWidth: 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        marginBottom: 5,
+    },
+    buttonText: {
+        color: 'red',
+        fontWeight: 'bold',
+        textAlign: 'center',
+    },
+    cancelButton: {
+        backgroundColor: 'red',
+        borderRadius: 5,
+        paddingVertical: 5,
+        paddingHorizontal: 5,
+        minWidth: 100,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+        marginBottom: 5,
+    },
+    cancelButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
         textAlign: 'center',
     },
 });

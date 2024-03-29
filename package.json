@@ -11,6 +11,7 @@
   "dependencies": {
     "@react-navigation/native-stack": "^6.9.26",
     "expo": "~50.0.14",
+    "expo-app-loading": "^2.1.1",
     "expo-av": "^13.10.5",
     "expo-file-system": "^16.0.8",
     "expo-haptics": "^12.8.1",

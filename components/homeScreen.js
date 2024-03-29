@@ -8,6 +8,7 @@ import { View, Button, Pressable, StyleSheet, Text } from 'react-native';
 const HomeScreen = ({ navigation }) => {
     return (
         <View style={styles.container}>
+            <Text style={styles.mainText}>Memory Reaper</Text>
             <Pressable style={styles.button} onPress={() => navigation.navigate('Difficulty')}>
                 <Text style={styles.buttonText}>Play</Text>
             </Pressable>
@@ -27,6 +28,17 @@ const styles = StyleSheet.create({
         padding: 0,
        // backgroundColor: '#F5FCFF',
         marginTop:200,
+    },
+    mainText: {
+        color: 'red',
+        fontSize: 40,
+        fontWeight: 'bold',
+        textShadowColor: 'rgba(0, 0, 0, 0.75)',
+        textShadowOffset: { width: 1, height: 1 },
+        textShadowRadius: 5,
+        textAlign: 'center',
+        marginBottom: 50,
+        fontFamily: 'monospace',
     },
     button: {
         backgroundColor: 'gray',

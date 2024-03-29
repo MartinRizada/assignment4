@@ -6,7 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import * as SQLite from 'expo-sqlite';
 
-const db = SQLite.openDatabase('game.db');
+const db = SQLite.openDatabase('scores.db');
 
 const LeaderboardScreen = () => {
     const [scores, setScores] = useState([]);
@@ -26,8 +26,17 @@ const LeaderboardScreen = () => {
         });
     }, []);
 
+    const renderHeader = () => {
+        return (
+            <View style={styles.header}>
+                <Text style={styles.headerText}>Initials</Text>
+                <Text style={styles.headerText}>Score</Text>
+            </View>
+        );
+    };
     return (
         <View style={styles.container}>
+            {renderHeader()}
             <FlatList
                 data={scores}
                 keyExtractor={(item, index) => 'key-' + index}
@@ -52,6 +61,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 10,
+        width: '100%',
+        backgroundColor: '#f3f3f3',
+    },
+    headerText: {
+        fontWeight: 'bold',
+        fontSize: 20,
+        width: '50%',
+        textAlign: 'center', 
+    },
     item: {
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -59,12 +82,17 @@ const styles = StyleSheet.create({
         padding: 10,
         borderBottomWidth: 1,
         borderBottomColor: '#ddd',
+        width: '100%', 
     },
     initials: {
         fontSize: 24,
+        width: '50%', 
+        textAlign: 'center',
     },
     score: {
         fontSize: 24,
+        width: '50%',
+        textAlign: 'center', 
     },
 });
 
