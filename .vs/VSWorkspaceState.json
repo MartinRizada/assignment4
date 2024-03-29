@@ -1,9 +1,9 @@
 {
   "ExpandedNodes": [
     "",
-    "\\assets",
-    "\\assets\\sfx"
+    "\\assets\\sfx",
+    "\\components"
   ],
-  "SelectedNode": "\\app.json",
+  "SelectedNode": "\\components\\leaderBoardScreen.js",
   "PreviewInSolutionExplorer": false
 }
